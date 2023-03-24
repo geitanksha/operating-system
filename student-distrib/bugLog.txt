@@ -1,0 +1,239 @@
+Bug Log:
+/*
+
+Types of Bugs as specified below:
+
+Syntactic errors are the trivial typos that generally result in compiler errors and that we don’t want to hear about. 
+Semantic errors are also often typos, but manage to pass the compiler and separate what the computer does from what you meant for it to do. 
+You may have used less-or-equal instead of less-than, for example. 
+Algorithmic errors occur when your thinking about a problem is just wrong in some way; for example, you forget about a certain case or a boundary condition. 
+Specification ambiguity errors occur when behavior in certain cases is unspecified or undocumented, and incompatible assumptions are made 
+(explicitly or implicitly) to resolve the ambiguity.
+*/ 
+
+1. Drivers:
+Type: Most errors were algorithmic, based on incorrect logic and understanding of the drivers.
+
+// PIC Bugs: 
+
+a. PIC - The IRQ Ports were not disaled at the beginning.
+- Symptom: Keyboard interrupt was registered even though I did not enable it in init. 
+- Difficulty: Took 10 mins to fix, masked them in the init function.
+- Fix: Saved the master and slave mask as all off, then send those to the data ports.
+
+b. PIC Enable / Disable IRQ
+- Symptom: The enabling and disabling did not work. 
+- Difficulty: 15 mins, changed 3 lines of code.
+- Fix: Forgot the ports were at active low. Changed the ANDing and ORing logic.
+
+// Keyboard Bugs: 
+
+c. Keyboard Scancode Map
+- Symptom: Scancode did not map correctly - had a 1 value offset.
+- Difficulty: 10 mins, changed one line of code.
+- Fix: On OSDEV, the scancode map started from 0x1 not 0x0. Changed my map.
+
+d. Keyboard scancode out of range printed.
+- Symptom: Keyboard kept printing random characters when I lifted the key.
+- Difficulty: 20 mins, changed one line of code.
+- Fix: Was taking input as an unsigned 8 bit value. Made it a 32 bit value and then checked if that was out of range.
+
+// RTC Bugs: 
+
+e. RTC did not obtain the A value registers and thus did not alter them.
+- Symptom: Interrupt tests did not work.
+- Difficulty: 20 mins, changed 4 lines of code.
+- Fix: Read through the OSDev Page and added the information so status reg A could be altered as well.
+
+f. RTC did not input the value from Reg C.
+- Symptom: RTC interrupts tests did not work.
+- Difficulty: 10 mins, added 2 lines of code.
+- Fix: Input the value from reg C and then ANDED it with itself. Does nothing in our case.
+
+2. IDT:
+
+a. seg_selector addr not set 
+- Type: Semantic
+- Symptom: the idt test worked but our div by 0 didnt work 
+- Difficulty: 1.5 hrs changed 1 line
+- Fix: set the seg_selector addr to KERNEL_CS which was in the files!
+
+b. syc call not used 
+- Type: Algorithmic
+- Symptom: didnt set x80 for the system call print for the idt and inline asm was wrong 
+- Difficulty: 15 min
+- Fix: did SET_IDT_ENTRY(x80 index into idt. sys call func) then used INT func to test x80 for sys call in tests.c
+
+c. did not set func vals correctly 
+- Type: Semantic
+- Symptom: kept bootlooping 
+- Difficulty: 1 hr
+- Fix: did address of (&) of each of the functions since func was array of function pointers 
+
+3. Paging
+
+a. Addressing 
+- Type: Algorithmic
+- Symptom: kept bootlooping 
+- Difficulty: 3 hrs, changed 2 lines
+- Fix: inside the stucts for the entries made it a union vith a val[2] but the val was uninitilized so commented it out
+
+b. Video Mem Table Addr
+- Type: Algorithmic
+- Symptom: kept bootlooping 
+- Difficulty: 2 hrs, 4 lines 
+- Fix: made the table addr xb8 and set p bit to 1 at that addr, also set the other addrs one to one (forloop 0->1024 table.p_addr = i)
+
+c. Page directory addr for vid mem  
+- Type: Algorithmic
+- Symptom: did not set pt_baddr correctly neeed to put addr of page_table array for vid mem NOT xb8
+- Difficulty: 1 hr, changed 1 line 
+- Fix: put page_table >> 12 for the upper 20 bit val
+
+
+Checkpoint 2:
+
+1. Terminal
+Type: Most errors were algorithmic, based on incorrect logic and understanding of the drivers.
+
+a. Terminal Newlines Not Aligned to Left Side of Screen
+- Symptom: Newlines will be printed with a random number of spaces between the left side of the screen and their start location
+- Difficulty: Took about 3 hours to fix, lots of time spent running through GDB searching for where the screen_x value got messed up
+- Fix: Implemented a variable to track the size of the keyboardbuffer. The problem was that the function was printing garbage characters past the end of our keyboardbuffer char array
+
+b. Scroll Issues
+- Symptom: Scroll would print lines twice when typing on second line of input.
+- Difficulty: 20 minutes, required some reworking of scroll function logic.
+- Fix: Our scroll function was resetting the screen_x to begin at the beginning of the current line, regardless of whether there were multiple lines of input. This caused the first line of text to be printed on the second line despite our keyboard driver having already written it above. I updated the logic to decrement scroll_y if the number of characters exceeded 80 (indicating two lines of text).
+
+2. File system
+
+a. starting addr wrong
+- Symptom: kept page faulting after testing a direntry read for frame0.txt
+- Difficulty: 30 min, gdb'ed through and found dir entries weren't valid 
+- Fix: set the file_int to the right value in kernel.c which was in the module_t struct which was the member mod_start.
+
+b. data block ptr was set incorrectly 
+- Symptom: kept page faulting when trying to call read_data since it went through the data blocks which we accessed using a incorrect addr 
+- Difficulty: 40 min we gdb'ed and it kept seg faulting when trying to print data block
+- Fix: we added 1 (which goes 4kb at a time since casted) the data block ptr inside the file_init function which went got the correct starting addr for data blocks which was end of inodes instead of 0th of data block
+
+c. read_data indicies pt1 
+- Symptom: did not output correct buffer when testing read_data 
+- Difficulty: 1 hr, we used real values to do the math for addressing again
+- Fix: instead of doing (curNbytes + offset) % 4096 realizied we needed to do (curNbytes + offset)/ 4096 to geth the index for the inode array of dblocks indicies
+
+d. read_data indicies pt2
+- Symptom: did not output correct buffer when testing read_data 
+- Difficulty: 1 hr, we used real values to do the math for addressing again
+- Fix: the start addr for the for loop that read each byte in current data block was wrong. We were correct to use modulus to get the start of the dblock but the offset should be added to
+... the curNbytes within the modulus ( curNytes + offset) % 4096 instead of (curNytes % 4096)  + offset
+
+e. our test for fake ls had messed up name
+- Symptom: printed file name with previous chars in 
+- Difficulty: 1hr
+- Fix: changed how read_dir sent data to buffer so that buf only had sting size of dentry string 
+
+3. RTC
+
+a. 
+- Symptom: puts2 vs putc  
+- Difficulty: 20 min,
+- Fix: we used the standard putc instead of using out scrolling putc2 so when doing the rtc test it did not scroll
+
+b. passed in wrong nbytes 
+- Symptom: write freq did not work for test cases 
+- Difficulty: 30 min
+- Fix: we had a check that nbytes was 4 bytes and we passsed a random nbytes param for the test cases so write freq never excuted so it was always at 2hz. 
+
+
+Checkpoint 3
+
+1. Support System Calls
+
+a. set the DPL in idt
+- Symptom: shell would not show up cuaig general protection fault  
+- Difficulty: 3hrs
+- Fix: when setting up the idt we set an if for x80 bit cehout for call_handler function instead of int x80 so DPL was not set
+
+b. Assembly linkage failed
+- Symptom: No system calls were being executed
+- Difficulty: 1hr
+- Fix: Check for 0x80 when initializing our IDT instead of the direct pointer to the call_handler function.
+
+c. syserr failed for testing int x80
+- Symptom: page fault after doing a bad invalid int x80
+- Difficulty: 2hrs
+- Fix: we jumped past the pop's for 4 registers when there was a bad code so we needed to pop 4 times if we get a bad code
+
+d. page fault on execute 
+- Symptom: page fault
+- Difficulty: 1 hr
+- Fix: we passed a pointer to read dentry by name instead of making a local dentry and then passing address of
+
+
+4. Executing User-level Code
+
+a. Write to correct file in ls
+- Symptom: ls was passing an fd value of zero instead of the fd corresponding to the recently opened file
+- Difficulty: 1hr
+- Fix: Rather than just return 0 on success, our open() system call had to return the fd index corresponding to the file opened
+
+b. Ls calls to terminal_write() not functioning properly
+- Symptom: Extra spaces were appearing between file directory entries due to extra newlines printed in the terminal_write().
+- Difficulty: 1hr
+- Fix: Terminal_write needed to set keyboardbuffersize to zero after one write. This was because the function checked whether to print a newline first based off the value of the keyboardbuffersize.
+
+
+5. Process Control Block
+
+a. didnt set the register to uint_32
+- Symptom: the halt didnt work 
+- Difficulty:
+- Fix: we set the saved ebp and esp to uint 32 instead of uint 8 so the address was wrong for halt
+
+Checkpoint 4
+
+1. 
+
+a. read_data
+- Symptom: would not fill the whole bufer with the data for the excute to the heap was incorrect and counter,fish didnt work 
+- Difficulty: 9hrs
+- Fix: change the label for 4kilobyte to 4096 :( 
+
+b. read_data return value
+- Symptom: cat was not displaying anything 
+- Difficulty: 20 min
+- Fix: needed to have the read syscall return read_data return which was curNbytes 
+
+c. vidmap range
+- Symptom: checking if in a 1kb page instead of 4mb page  
+- Difficulty: 20 min
+- Fix: change the labels for the range to be within 1 mb page  
+
+
+Checkpoint 5
+
+1. 
+
+a. using ptr instead of accessing pcb through term array 
+- Symptom: after running programs halt would cause page faults  
+- Difficulty: 6hrs
+- Fix: instead of using currpcb ptr using the terminal arry direclty to set parent terminalArray[terminalrun].cur_PCB = parentpcb 
+
+b. terminal switch did not save mem 
+- Symptom: could not see saved mem after switching 
+- Difficulty: 5 hrs 
+- Fix: needed to switch the order of maping the pages then memcpy the vidmem of vidmem to cur, newterm mem to vidmem
+
+c. failure to restore ebp and esp
+- Symptom: The program would enter a boot loop where the shell would execute and then restart the whole system
+- Difficulty: 5 hours
+- Fix: Switch the ebp and esp to be saved to the terminal struct instead of the pcb struct
+
+d. Keyboard and terminal_write conflicts
+- Symptom: Terminal_write and keyboard both used putc2, which caused conflicts with evaluating what terminal to write to
+- Difficulty: 1 hour
+- Fix: Created two separate putc2 functions for terminal_write and keyboard. Terminal_write would use the pcb's terminal ID, while the keyboard would use the visible terminal. Also did this for the scroll function.
+
+

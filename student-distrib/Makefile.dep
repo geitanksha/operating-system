@@ -1,0 +1,36 @@
+boot.o: boot.S multiboot.h x86_desc.h types.h
+interruptlinkage.o: interruptlinkage.S x86_desc.h types.h
+pagingasm.o: pagingasm.S
+syscallasm.o: syscallasm.S
+x86_desc.o: x86_desc.S x86_desc.h types.h
+filesys.o: filesys.c filesys.h multiboot.h types.h lib.h paging.h \
+  x86_desc.h terminal.h keyboard.h i8259.h syscall.h IDT.h \
+  linkageheader.h rtc.h
+i8259.o: i8259.c i8259.h types.h lib.h paging.h x86_desc.h terminal.h \
+  keyboard.h syscall.h IDT.h linkageheader.h filesys.h multiboot.h rtc.h
+IDT.o: IDT.c x86_desc.h types.h IDT.h lib.h paging.h terminal.h \
+  keyboard.h i8259.h syscall.h linkageheader.h filesys.h multiboot.h \
+  rtc.h
+kernel.o: kernel.c multiboot.h types.h x86_desc.h lib.h paging.h \
+  terminal.h keyboard.h i8259.h syscall.h IDT.h linkageheader.h filesys.h \
+  rtc.h debug.h tests.h
+keyboard.o: keyboard.c keyboard.h lib.h types.h paging.h x86_desc.h \
+  terminal.h i8259.h syscall.h IDT.h linkageheader.h filesys.h \
+  multiboot.h rtc.h
+lib.o: lib.c lib.h types.h paging.h x86_desc.h terminal.h keyboard.h \
+  i8259.h syscall.h IDT.h linkageheader.h filesys.h multiboot.h rtc.h
+paging.o: paging.c paging.h x86_desc.h types.h lib.h terminal.h \
+  keyboard.h i8259.h syscall.h IDT.h linkageheader.h filesys.h \
+  multiboot.h rtc.h
+rtc.o: rtc.c filesys.h multiboot.h types.h lib.h paging.h x86_desc.h \
+  terminal.h keyboard.h i8259.h syscall.h IDT.h linkageheader.h rtc.h
+scheduler.o: scheduler.c lib.h types.h paging.h x86_desc.h terminal.h \
+  keyboard.h i8259.h syscall.h IDT.h linkageheader.h filesys.h \
+  multiboot.h rtc.h scheduler.h
+syscall.o: syscall.c syscall.h x86_desc.h types.h IDT.h linkageheader.h \
+  filesys.h multiboot.h lib.h paging.h terminal.h keyboard.h i8259.h \
+  rtc.h
+terminal.o: terminal.c terminal.h keyboard.h lib.h types.h paging.h \
+  x86_desc.h i8259.h syscall.h IDT.h linkageheader.h filesys.h \
+  multiboot.h rtc.h
+tests.o: tests.c
