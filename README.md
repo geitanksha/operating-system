@@ -1,3 +1,9 @@
+ECE Operating System
+-----
+
+
+Creating an operating system that has the capability of executing 3 terminals at the same time, with the Round Robin Scheduling Policy.
+
 ACADEMIC INTEGRITY
 -----
 Please review the University of Illinois Student Code before starting,
